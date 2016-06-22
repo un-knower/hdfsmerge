@@ -1,7 +1,5 @@
 package com.hadoop.mapreduce;
 
-import com.sun.org.apache.bcel.internal.generic.NEW;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.IOUtils;
@@ -31,8 +29,12 @@ public class Merge {
             Path source = new Path(srcPath + "/*");
 
             Path dest = new Path(dstFile);
+
             //删除目的文件
-            fileSystem.delete(dest,false);
+            if (fileSystem.exists(dest)) {
+                fileSystem.listStatus(dest);
+                fileSystem.delete(dest,false);
+            }
 
             //根据正则表达式过滤文件
             FileStatus[] localStatus = fileSystem.globStatus(source, new RegexAcceptPathFilter(regex));
@@ -48,7 +50,7 @@ public class Merge {
                 //打开输入流
                 in = fileSystem.open(file);
                 //复制数据
-                IOUtils.copyBytes(in, out, conf, false);
+                IOUtils.copyBytes(in, out, 4096, false);
                 //关闭输入流
                 in.close();
                 System.out.println("end merge " + file.getName());
@@ -77,9 +79,10 @@ public class Merge {
     }
 
     public static void main(String[] args) {
+        conf.set("fs.defaultFS", "hdfs://10.38.11.59:9000");
         String srcPath = "/data_center/weibo/year=2016/month=06/";
         String destFile = "/data_center/weibo/year=2016/month=06/2016-06-21.txt";
-        String regex = "^2016-06-21.*.txt$";
+        String regex = "2016-06-21.*.txt";
         Merge(srcPath,destFile,regex,false);
         /*if (args.length < 4) {
             System.out.println("usage: hadoop jar merge.jar Merge srcPath destPath regex isDelete(default false)");
